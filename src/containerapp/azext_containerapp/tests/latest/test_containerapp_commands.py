@@ -739,7 +739,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
 
     @AllowLargeResponse(8192)
     @ResourceGroupPreparer(location="eastus2")
-    def test_containerapp_dev_service_binding_none_client_type(self, resource_group):
+    def test_containerapp_dev_add_on_binding_none_client_type(self, resource_group):
         # type "linkers" is not available in North Central US (Stage), if the TEST_LOCATION is "northcentralusstage", use eastus as location
         location = TEST_LOCATION
         if format_location(location) == format_location(STAGE_LOCATION):
@@ -754,14 +754,14 @@ class ContainerappServiceBindingTests(ScenarioTest):
         env_rg = parse_resource_id(env_id).get('resource_group')
         env_name = parse_resource_id(env_id).get('name')
 
-        self.cmd('containerapp service redis create -g {} -n {} --environment {}'.format(env_rg, redis_ca_name, env_name), checks=[
+        self.cmd('containerapp add-on redis create -g {} -n {} --environment {}'.format(env_rg, redis_ca_name, env_name), checks=[
             JMESPathCheck('properties.provisioningState', "Succeeded")
         ])
 
-        self.cmd('containerapp service postgres create -g {} -n {} --environment {}'.format(env_rg, postgres_ca_name, env_name), checks=[
+        self.cmd('containerapp add-on postgres create -g {} -n {} --environment {}'.format(env_rg, postgres_ca_name, env_name), checks=[
             JMESPathCheck('properties.provisioningState', "Succeeded")
         ])
-        self.cmd('containerapp service kafka create -g {} -n {} --environment {}'.format(env_rg, kafka_ca_name, env_name), checks=[
+        self.cmd('containerapp add-on kafka create -g {} -n {} --environment {}'.format(env_rg, kafka_ca_name, env_name), checks=[
             JMESPathCheck('properties.provisioningState', "Succeeded")
         ])
 
@@ -800,21 +800,21 @@ class ContainerappServiceBindingTests(ScenarioTest):
 
     @AllowLargeResponse(8192)
     @ResourceGroupPreparer(location="eastus2")
-    def test_containerapp_dev_service_binding_customized_keys_yaml_e2e(self, resource_group):
+    def test_containerapp_dev_add_on_binding_customized_keys_yaml_e2e(self, resource_group):
         self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
         ca_name = self.create_random_name(prefix='containerapp1', length=24)
-        redis_ca_name = 'redis-yaml'
+        redis_ca_name = 'redis-yaml2'
         postgres_ca_name = 'postgres-yaml'
 
         env_id = prepare_containerapp_env_for_app_e2e_tests(self)
         env_rg = parse_resource_id(env_id).get('resource_group')
         env_name = parse_resource_id(env_id).get('name')
 
-        redis_resource_id = self.cmd('containerapp service redis create -g {} -n {} --environment {}'.format(env_rg, redis_ca_name, env_name), checks=[
+        redis_resource_id = self.cmd('containerapp add-on redis create -g {} -n {} --environment {}'.format(env_rg, redis_ca_name, env_name), checks=[
             JMESPathCheck('properties.provisioningState', "Succeeded")
         ]).get_output_in_json()["id"]
 
-        postgres_resource_id = self.cmd('containerapp service postgres create -g {} -n {} --environment {}'.format(env_rg, postgres_ca_name, env_name)).get_output_in_json()["id"]
+        postgres_resource_id = self.cmd('containerapp add-on postgres create -g {} -n {} --environment {}'.format(env_rg, postgres_ca_name, env_name)).get_output_in_json()["id"]
         # test create
         containerapp_yaml_text = f"""
                                 location: {TEST_LOCATION}
@@ -931,14 +931,14 @@ class ContainerappServiceBindingTests(ScenarioTest):
                 JMESPathCheck('properties.template.serviceBinds[1].customizedKeys', None),
             ])
 
-        self.cmd('containerapp service redis delete -g {} -n {} --yes'.format(env_rg, redis_ca_name), expect_failure=False)
-        self.cmd('containerapp service postgres delete -g {} -n {} --yes'.format(env_rg, postgres_ca_name), expect_failure=False)
+        self.cmd('containerapp add-on redis delete -g {} -n {} --yes'.format(env_rg, redis_ca_name), expect_failure=False)
+        self.cmd('containerapp add-on postgres delete -g {} -n {} --yes'.format(env_rg, postgres_ca_name), expect_failure=False)
         self.cmd('containerapp delete -n {} -g {} --yes'.format(ca_name, resource_group), expect_failure=False)
         clean_up_test_file(containerapp_file_name)
 
     @AllowLargeResponse(8192)
     @ResourceGroupPreparer(location="eastus2")
-    def test_containerapp_dev_service_binding_customized_keys_e2e(self, resource_group):
+    def test_containerapp_dev_add_on_binding_customized_keys_e2e(self, resource_group):
         # type "linkers" is not available in North Central US (Stage), if the TEST_LOCATION is "northcentralusstage", use eastus as location
         location = TEST_LOCATION
         if format_location(location) == format_location(STAGE_LOCATION):
@@ -952,11 +952,11 @@ class ContainerappServiceBindingTests(ScenarioTest):
         env_rg = parse_resource_id(env_id).get('resource_group')
         env_name = parse_resource_id(env_id).get('name')
 
-        redis_resource_id = self.cmd('containerapp service redis create -g {} -n {} --environment {}'.format(env_rg, redis_ca_name, env_name), checks=[
+        redis_resource_id = self.cmd('containerapp add-on redis create -g {} -n {} --environment {}'.format(env_rg, redis_ca_name, env_name), checks=[
             JMESPathCheck('properties.provisioningState', "Succeeded")
         ]).get_output_in_json()["id"]
 
-        self.cmd('containerapp service postgres create -g {} -n {} --environment {}'.format(env_rg, postgres_ca_name, env_name))
+        self.cmd('containerapp add-on postgres create -g {} -n {} --environment {}'.format(env_rg, postgres_ca_name, env_name))
         self.cmd(
             'containerapp create -n {} -g  {} --environment {} --bind {},clientType=dotnet,resourcegroup={} {},clientType=none,resourcegroup={}'.format(
                 ca_name, resource_group, env_id, redis_ca_name, env_rg, postgres_ca_name, env_rg), expect_failure=False, checks=[
@@ -1020,13 +1020,13 @@ class ContainerappServiceBindingTests(ScenarioTest):
             ca_name2, resource_group, redis_ca_name), checks=[
             JMESPathCheck('properties.template.serviceBinds', None),
         ])
-        self.cmd('containerapp service redis delete -g {} -n {} --yes'.format(env_rg, redis_ca_name))
-        self.cmd('containerapp service postgres delete -g {} -n {} --yes'.format(env_rg, postgres_ca_name))
+        self.cmd('containerapp add-on redis delete -g {} -n {} --yes'.format(env_rg, redis_ca_name))
+        self.cmd('containerapp add-on postgres delete -g {} -n {} --yes'.format(env_rg, postgres_ca_name))
         self.cmd('containerapp delete -n {} -g {} --yes'.format(ca_name2, resource_group), expect_failure=False)
 
     @AllowLargeResponse(8192)
     @ResourceGroupPreparer(location="eastus2")
-    def test_containerapp_dev_service_binding_e2e(self, resource_group):
+    def test_containerapp_dev_add_on_binding_e2e(self, resource_group):
         # type "linkers" is not available in North Central US (Stage), if the TEST_LOCATION is "northcentralusstage", use eastus as location
         location = TEST_LOCATION
         if format_location(location) == format_location(STAGE_LOCATION):
@@ -1044,19 +1044,19 @@ class ContainerappServiceBindingTests(ScenarioTest):
 
         create_containerapp_env(self, env_name, resource_group)
 
-        self.cmd('containerapp service redis create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp add-on redis create -g {} -n {} --environment {}'.format(
             resource_group, redis_ca_name, env_name))
 
-        self.cmd('containerapp service postgres create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp add-on postgres create -g {} -n {} --environment {}'.format(
             resource_group, postgres_ca_name, env_name))
 
-        self.cmd('containerapp service kafka create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp add-on kafka create -g {} -n {} --environment {}'.format(
             resource_group, kafka_ca_name, env_name))
 
-        self.cmd('containerapp service mariadb create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp add-on mariadb create -g {} -n {} --environment {}'.format(
             resource_group, mariadb_ca_name, env_name))
 
-        self.cmd('containerapp service qdrant create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp add-on qdrant create -g {} -n {} --environment {}'.format(
             resource_group, qdrant_ca_name, env_name))
 
         self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind postgres:postgres_binding redis'.format(
@@ -1079,24 +1079,24 @@ class ContainerappServiceBindingTests(ScenarioTest):
             JMESPathCheck('properties.template.serviceBinds[4].name', "qdrant")
         ])
 
-        self.cmd('containerapp service postgres delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp add-on postgres delete -g {} -n {} --yes'.format(
             resource_group, postgres_ca_name, env_name))
 
-        self.cmd('containerapp service redis delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp add-on redis delete -g {} -n {} --yes'.format(
             resource_group, redis_ca_name, env_name))
 
-        self.cmd('containerapp service kafka delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp add-on kafka delete -g {} -n {} --yes'.format(
             resource_group, kafka_ca_name, env_name))
 
-        self.cmd('containerapp service mariadb delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp add-on mariadb delete -g {} -n {} --yes'.format(
             resource_group, mariadb_ca_name, env_name))
 
-        self.cmd('containerapp service qdrant delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp add-on qdrant delete -g {} -n {} --yes'.format(
             resource_group, qdrant_ca_name, env_name))
 
         self.cmd(f'containerapp delete -g {resource_group} -n {ca_name} --yes')
 
-        self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
+        self.cmd('containerapp add-on list -g {} --environment {}'.format(resource_group, env_name), checks=[
             JMESPathCheck('length(@)', 0),
         ])
 
@@ -1899,6 +1899,7 @@ properties:
                 - name: secret1
                   value: 1
                 activeRevisionsMode: Multiple
+                maxInactiveRevisions: 10
                 ingress:
                   external: true
                   allowInsecure: false
@@ -1954,6 +1955,7 @@ properties:
             JMESPathCheck("properties.configuration.ingress.ipSecurityRestrictions[0].name", "name"),
             JMESPathCheck("properties.configuration.ingress.ipSecurityRestrictions[0].ipAddressRange", "1.1.1.1/10"),
             JMESPathCheck("properties.configuration.ingress.ipSecurityRestrictions[0].action", "Allow"),
+            JMESPathCheck("properties.configuration.maxInactiveRevisions", "10"),
             JMESPathCheck("length(properties.configuration.secrets)", 1),
             JMESPathCheck("properties.environmentId", containerapp_env["id"]),
             JMESPathCheck("properties.template.revisionSuffix", "myrevision"),
@@ -2350,3 +2352,29 @@ class ContainerappOtherPropertyTests(ScenarioTest):
         self.cmd(f'containerapp create -g {resource_group} -n {app} --image {image} --ingress external --target-port 80 --environment {env} --termination-grace-period {terminationGracePeriodSeconds}')
 
         self.cmd(f'containerapp show -g {resource_group} -n {app}', checks=[JMESPathCheck("properties.template.terminationGracePeriodSeconds", terminationGracePeriodSeconds)])
+
+    @AllowLargeResponse(8192)
+    @ResourceGroupPreparer(location="northeurope")
+    def test_containerapp_max_inactive_revisions(self, resource_group):
+        self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
+
+        app = self.create_random_name(prefix='aca', length=24)
+        image = "mcr.microsoft.com/k8se/quickstart:latest"
+        
+        env = prepare_containerapp_env_for_app_e2e_tests(self)
+
+        self.cmd(f'containerapp create -g {resource_group} -n {app} --image {image} --ingress external --target-port 80 --environment {env} --cpu 0.5 --memory 1Gi')
+        self.cmd(f'containerapp show -g {resource_group} -n {app}', checks=[JMESPathCheck("properties.configuration.maxInactiveRevisions", 100)])
+
+        maxInactiveRevisions = 99
+        self.cmd(f'containerapp create -g {resource_group} -n {app} --image {image} --ingress external --target-port 80 --environment {env} --max-inactive-revisions {maxInactiveRevisions}')
+        self.cmd(f'containerapp show -g {resource_group} -n {app}', checks=[JMESPathCheck("properties.configuration.maxInactiveRevisions", maxInactiveRevisions)])
+
+        maxInactiveRevisions = 50
+        self.cmd(f'containerapp update -g {resource_group} -n {app} --cpu 0.5 --memory 1Gi --max-inactive-revisions {maxInactiveRevisions}')
+        self.cmd(f'containerapp show -g {resource_group} -n {app}', checks=[JMESPathCheck("properties.configuration.maxInactiveRevisions", maxInactiveRevisions)])
+
+        self.cmd(f'containerapp update -g {resource_group} -n {app} --cpu 0.25 --memory 0.5Gi')
+        self.cmd(f'containerapp show -g {resource_group} -n {app}', checks=[JMESPathCheck("properties.configuration.maxInactiveRevisions", maxInactiveRevisions)])
+
+        
